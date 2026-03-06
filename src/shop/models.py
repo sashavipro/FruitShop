@@ -42,12 +42,14 @@ class TradeLog(models.Model):
     for every background task attempting to buy or sell products.
     """
 
-    STATUS_CHOICES = [
-        ("SUCCESS", "Success"),
-        ("ERROR", "Error"),
-    ]
+    class Status(models.TextChoices):
+        """Available statuses for a trade operation."""
+
+        SUCCESS = "SUCCESS", "Success"
+        ERROR = "ERROR", "Error"
+
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    status = models.CharField(max_length=10, choices=Status.choices)
     message = models.TextField()
 
     class Meta:
@@ -68,9 +70,21 @@ class TaskRegistry(models.Model):
     the frontend with the latest run times for periodic polling.
     """
 
+    class Status(models.TextChoices):
+        """Available statuses for a background task."""
+
+        IDLE = "idle", "Idle"
+        RUNNING = "running", "Running"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
     task_name = models.CharField(max_length=100, unique=True)
     last_run_at = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=20, default="idle")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.IDLE,
+    )
 
     def __str__(self):
         """Return a string representation of the task registry entry."""
