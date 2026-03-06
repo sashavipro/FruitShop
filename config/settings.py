@@ -170,3 +170,52 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+from celery.schedules import crontab
+
+# ==========================================
+# Celery Beat Schedule (Периодические задачи)
+# ==========================================
+CELERY_BEAT_SCHEDULE = {
+    # Яблоки
+    "buy-apples": {"task": "shop.tasks.trade_buy_apples",
+                   "schedule": crontab(minute="*/1")},
+    "sell-apples": {"task": "shop.tasks.trade_sell_apples",
+                    "schedule": crontab(minute="*/2")},
+
+    # Ананасы
+    "buy-pineapples": {"task": "shop.tasks.trade_buy_pineapples",
+                       "schedule": crontab(minute="*/2")},
+    "sell-pineapples": {"task": "shop.tasks.trade_sell_pineapples",
+                        "schedule": crontab(minute="*/3")},
+
+    # Бананы
+    "buy-bananas": {"task": "shop.tasks.trade_buy_bananas",
+                    "schedule": crontab(minute="*/3")},
+    "sell-bananas": {"task": "shop.tasks.trade_sell_bananas",
+                     "schedule": crontab(minute="*/4")},
+
+    # Апельсины
+    "buy-oranges": {"task": "shop.tasks.trade_buy_oranges",
+                    "schedule": crontab(minute="*/4")},
+    "sell-oranges": {"task": "shop.tasks.trade_sell_oranges",
+                     "schedule": crontab(minute="*/5")},
+
+    # Абрикосы
+    "buy-apricots": {"task": "shop.tasks.trade_buy_apricots",
+                     "schedule": crontab(minute="*/2")},
+    "sell-apricots": {"task": "shop.tasks.trade_sell_apricots",
+                      "schedule": crontab(minute="*/3")},
+
+    # Киви
+    "buy-kiwi": {"task": "shop.tasks.trade_buy_kiwi",
+                 "schedule": crontab(minute="*/3")},
+    "sell-kiwi": {"task": "shop.tasks.trade_sell_kiwi",
+                  "schedule": crontab(minute="*/4")},
+
+    # Персики
+    "buy-peaches": {"task": "shop.tasks.trade_buy_peaches",
+                    "schedule": crontab(minute="*/4")},
+    "sell-peaches": {"task": "shop.tasks.trade_sell_peaches",
+                     "schedule": crontab(minute="*/5")},
+}

@@ -20,6 +20,7 @@ help:
 	@echo "  make down           - Остановка контейнеров"
 	@echo "  make test           - Запуск тестов"
 	@echo "  make celery-trade   - Запуск Celery воркера для торговых операций (Очередь 1)"
+	@echo "  make celery-beat    - Запуск планировщика периодических задач Celery Beat"
 
 # ==========================================
 # Django Commands
@@ -89,3 +90,7 @@ test:
 # Воркер для торговых операций (Очередь 1) - строго 1 задача за раз
 celery-trade:
 	poetry run celery -A config worker -Q trading_queue --concurrency=1 --loglevel=info
+
+# Планировщик периодических задач (Celery Beat)
+celery-beat:
+	poetry run celery -A config beat --loglevel=info

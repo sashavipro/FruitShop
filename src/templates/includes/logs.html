@@ -1,5 +1,11 @@
 <div>
-    <div class="log-error">16.11.2022 10:30 - ERROR: Поставщик привёз 4 ананаса. Недостаточно средств на счету, закупка отменена.</div>
-    <div class="log-success">16.11.2022 10:31 - SUCCESS: Поставщик привёз 5 яблок. Со счёта списано 15 USD, покупка завершена.</div>
-    <div class="log-error">16.11.2022 10:32 - ERROR: Поставщик привёз 4 ананаса. Недостаточно средств на счету, закупка отменена.</div>
+    {% for log in logs %}
+        {% if log.status == 'SUCCESS' %}
+            <div class="log-success">{{ log.created_at|date:"d.m.Y H:i" }} - SUCCESS: {{ log.message }}</div>
+        {% else %}
+            <div class="log-error">{{ log.created_at|date:"d.m.Y H:i" }} - ERROR: {{ log.message }}</div>
+        {% endif %}
+    {% empty %}
+        <div style="font-size: 13px; color: #666;">Логов пока нет. Запустите Celery Beat!</div>
+    {% endfor %}
 </div>

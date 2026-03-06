@@ -2,10 +2,14 @@
 
 from django.urls import path
 
-from .views import index_view
+from .views import AuthActionView
+from .views import IndexView
+from .views import UserLogoutView
 
 app_name = "core"
 
 urlpatterns = [
-    path("", index_view, name="index"),
+    path("", IndexView.as_view(), name="index"),
+    path("auth/", AuthActionView.as_view(), name="auth_action"),
+    path("logout/", UserLogoutView.as_view(), name="logout"),
 ]

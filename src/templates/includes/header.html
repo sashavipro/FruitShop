@@ -3,16 +3,17 @@
     <div>
         {% if user.is_authenticated %}
             <span style="margin-right: 15px; font-size: 16px;">{{ user.username }}</span>
-            <form method="post" action="#" style="display:inline;">
+            <form method="post" action="{% url 'core:logout' %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-login">Logout</button>
             </form>
         {% else %}
-            <form method="post" action="#" style="display:inline;">
+            <form method="post" action="{% url 'core:auth_action' %}" style="display:inline;">
                 {% csrf_token %}
                 <input type="text" name="username" placeholder="Username" required style="padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
                 <input type="password" name="password" placeholder="Password" required style="padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
-                <button type="submit" class="btn btn-login">Login</button>
+                <button type="submit" name="action" value="login" class="btn btn-login">Login</button>
+                <button type="submit" name="action" value="register" class="btn btn-buy">Register</button>
             </form>
         {% endif %}
     </div>

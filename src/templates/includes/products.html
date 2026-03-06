@@ -9,65 +9,25 @@
         </tr>
     </thead>
     <tbody>
+        {% for product in products %}
         <tr>
-            <td>Ананасы</td>
-            <td>15</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
+            <td>{{ product.name }}</td>
+            <td>{{ product.stock_quantity }}</td>
+            <td style="width: 250px;">
+                <form hx-post="/api/trade/" hx-swap="none" style="display: flex; align-items: center; justify-content: center; margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_name" value="{{ product.name }}">
+
+                    <input type="number" name="quantity" placeholder="К-ВО" class="action-input" min="1" required style="width: 70px;">
+
+                    <button type="submit" name="action" value="buy" class="btn btn-buy">Купить</button>
+                    <button type="submit" name="action" value="sell" class="btn btn-sell">Продать</button>
+                </form>
             </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - куплено 5<br>ананасов за 20 usd</td>
+            <td style="font-size: 13px; font-weight: bold;">{{ product.last_operation_info|default:"-" }}</td>
         </tr>
-        <tr>
-            <td>Яблоки</td>
-            <td>224</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
-            </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - куплено 5<br>яблок за 20 usd</td>
-        </tr>
-        <tr>
-            <td>Бананы</td>
-            <td>66</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
-            </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - продано 5<br>бананов за 20 usd</td>
-        </tr>
-        <tr>
-            <td>Апельсины</td>
-            <td>235</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
-            </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - куплено 5<br>апельсинов за 20 usd</td>
-        </tr>
-        <tr>
-            <td>Абрикосы</td>
-            <td>12</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
-            </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - продано 5<br>абрикос за 20 usd</td>
-        </tr>
-        <tr>
-            <td>Киви</td>
-            <td>0</td>
-            <td>
-                <input type="text" placeholder="К-ВО" class="action-input">
-                <button class="btn btn-buy">Купить</button>
-                <button class="btn btn-sell">Продать</button>
-            </td>
-            <td style="font-size: 13px; font-weight: bold;">16.11.2022 10:30 - куплено 5<br>киви за 20 usd</td>
-        </tr>
+        {% empty %}
+        <tr><td colspan="4">Склад пуст. Выполните make init-data</td></tr>
+        {% endfor %}
     </tbody>
 </table>
