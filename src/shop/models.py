@@ -1,0 +1,1 @@
+"""src/shop/models.py."""

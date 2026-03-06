@@ -1,0 +1,1 @@
+"""src/shop/admin.py."""
