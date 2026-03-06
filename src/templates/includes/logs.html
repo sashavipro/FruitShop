@@ -1,4 +1,4 @@
-<div>
+<div id="trade-logs">
     {% for log in logs %}
         {% if log.status == 'SUCCESS' %}
             <div class="log-success">{{ log.created_at|date:"d.m.Y H:i" }} - SUCCESS: {{ log.message }}</div>

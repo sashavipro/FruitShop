@@ -1,10 +1,37 @@
 """src/shop/tasks/services.py."""
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import transaction
+from django.utils import timezone
 
 from src.shop.models import BankAccount
 from src.shop.models import Product
 from src.shop.models import TradeLog
+
+
+def broadcast_update(log_entry, account, product):
+    """Send updated data to the WebSocket group."""
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "trade_updates",
+        {
+            "type": "trade_update",
+            "log": {
+                "status": log_entry.status,
+                "message": log_entry.message,
+                "created_at": timezone.localtime(log_entry.created_at).strftime(
+                    "%d.%m.%Y %H:%M"
+                ),
+            },
+            "balance": str(account.balance),
+            "product": {
+                "name": product.name,
+                "quantity": product.stock_quantity,
+                "last_operation": product.last_operation_info,
+            },
+        },
+    )
 
 
 def execute_trade(action: str, product_name: str, quantity: int) -> None:

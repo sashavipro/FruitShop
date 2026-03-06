@@ -154,7 +154,7 @@ CELERY_TASK_SERIALIZER = 'json'
 # Маршрутизация задач по очередям
 CELERY_TASK_ROUTES = {
     # Все задачи покупки/продажи отправляем в первую очередь
-    'src.shop.tasks.trade_*': {'queue': 'trading_queue'},
+    'shop.tasks.trade_*': {'queue': 'trading_queue'},
 }
 
 

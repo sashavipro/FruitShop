@@ -76,5 +76,41 @@
     <div class="main-content">
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+        // Определяем протокол
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const tradeSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/trades/');
+
+        tradeSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'trade_update') {
+                // 1. Обновляем баланс
+                const balanceEl = document.getElementById('bank-balance');
+                if (balanceEl) {
+                    balanceEl.innerText = parseFloat(data.balance).toFixed(2) + ' USD';
+                }
+
+                // 2. Добавляем новый лог наверх списка
+                const logsContainer = document.getElementById('trade-logs');
+                if (logsContainer) {
+                    const logDiv = document.createElement('div');
+                    // Назначаем класс для цвета
+                    logDiv.className = data.log.status === 'SUCCESS' ? 'log-success' : 'log-error';
+                    logDiv.innerText = `${data.log.created_at} - ${data.log.status}: ${data.log.message}`;
+
+                    // Вставляем лог в начало блока
+                    logsContainer.insertBefore(logDiv, logsContainer.firstChild);
+                }
+
+                // Бонус: можно также обновлять строку товара в таблице (если добавить ID к строкам таблицы)
+            }
+        };
+
+        tradeSocket.onclose = function(e) {
+            console.error('Trade socket closed unexpectedly');
+        };
+    </script>
 </body>
 </html>
