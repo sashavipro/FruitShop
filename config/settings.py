@@ -151,6 +151,12 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+# Маршрутизация задач по очередям
+CELERY_TASK_ROUTES = {
+    # Все задачи покупки/продажи отправляем в первую очередь
+    'src.shop.tasks.trade_*': {'queue': 'trading_queue'},
+}
+
 
 # ==========================================
 # Настройки Django Channels (WebSockets)

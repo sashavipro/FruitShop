@@ -19,6 +19,7 @@ help:
 	@echo "  make up             - Запуск БД и Redis в фоновом режиме"
 	@echo "  make down           - Остановка контейнеров"
 	@echo "  make test           - Запуск тестов"
+	@echo "  make celery-trade   - Запуск Celery воркера для торговых операций (Очередь 1)"
 
 # ==========================================
 # Django Commands
@@ -80,3 +81,11 @@ down:
 # Запуск тестов
 test:
 	poetry run pytest
+
+# ==========================================
+# Celery Workers
+# ==========================================
+
+# Воркер для торговых операций (Очередь 1) - строго 1 задача за раз
+celery-trade:
+	poetry run celery -A config worker -Q trading_queue --concurrency=1 --loglevel=info
