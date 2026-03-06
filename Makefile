@@ -1,0 +1,82 @@
+.PHONY: help run makemigrations migrate shell superuser init-data lint format up down test
+
+# ==========================================
+# Help
+# ==========================================
+
+# Вывод списка всех доступных команд
+help:
+	@echo "Доступные команды:"
+	@echo "  make help           - Показать это сообщение"
+	@echo "  make run            - Запуск сервера разработки"
+	@echo "  make makemigrations - Создание новых миграций"
+	@echo "  make migrate        - Применение миграций к БД"
+	@echo "  make shell          - Запуск интерактивной консоли"
+	@echo "  make superuser      - Стандартное создание суперпользователя"
+	@echo "  make init-data      - Наша кастомная команда для наполнения БД"
+	@echo "  make lint           - Проверка кода линтером Ruff"
+	@echo "  make format         - Автоматическое форматирование кода (Ruff)"
+	@echo "  make up             - Запуск БД и Redis в фоновом режиме"
+	@echo "  make down           - Остановка контейнеров"
+	@echo "  make test           - Запуск тестов"
+
+# ==========================================
+# Django Commands
+# ==========================================
+
+# Запуск сервера разработки
+run:
+	poetry run python manage.py runserver
+
+# Создание новых миграций
+makemigrations:
+	poetry run python manage.py makemigrations
+
+# Применение миграций к БД
+migrate:
+	poetry run python manage.py migrate
+
+# Запуск интерактивной консоли
+shell:
+	poetry run python manage.py shell
+
+# Стандартное создание суперпользователя
+superuser:
+	poetry run python manage.py createsuperuser
+
+# Наша кастомная команда для наполнения БД
+init-data:
+	poetry run python manage.py init_data
+
+# ==========================================
+# Linters & Formatting
+# ==========================================
+
+# Проверка кода линтером Ruff
+lint:
+	poetry run ruff check .
+
+# Автоматическое форматирование кода (Ruff)
+format:
+	poetry run ruff check --fix .
+	poetry run ruff format .
+
+# ==========================================
+# Docker Infrastructure
+# ==========================================
+
+# Запуск БД и Redis в фоновом режиме
+up:
+	docker-compose up -d
+
+# Остановка контейнеров
+down:
+	docker-compose down
+
+# ==========================================
+# Tests
+# ==========================================
+
+# Запуск тестов
+test:
+	poetry run pytest

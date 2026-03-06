@@ -17,9 +17,10 @@ import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SRC_DIR = BASE_DIR / "src"
 
 # Добавляем папку src в sys.path
-sys.path.insert(0, os.path.join(BASE_DIR, 'src'))
+sys.path.insert(0, str(SRC_DIR))
 
 # Инициализация environ
 env = environ.Env(
@@ -27,7 +28,7 @@ env = environ.Env(
 )
 
 # Чтение файла .env из корня проекта
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
