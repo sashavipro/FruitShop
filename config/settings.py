@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 
     'shop',
     'chat',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -74,7 +75,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [SRC_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

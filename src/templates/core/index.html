@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="layout-left">
+    <div class="panel">
+        {% include 'includes/products.html' %}
+    </div>
+
+    <div class="layout-bottom">
+        {% include 'includes/chat.html' %}
+        {% include 'includes/bank.html' %}
+    </div>
+</div>
+
+<div class="layout-right">
+    {% include 'includes/logs.html' %}
+</div>
+{% endblock %}
