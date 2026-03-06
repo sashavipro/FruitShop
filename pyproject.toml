@@ -6,7 +6,7 @@ authors = [
     {name = "sasha",email = "sashavipro@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 dependencies = [
     "django (>=6.0.3,<7.0.0)",
     "django-ninja (>=1.5.3,<2.0.0)",
@@ -15,7 +15,8 @@ dependencies = [
     "channels-redis (>=4.3.0,<5.0.0)",
     "celery (>=5.6.2,<6.0.0)",
     "redis (>=7.2.1,<8.0.0)",
-    "psycopg2-binary (>=2.9.11,<3.0.0)"
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "django-environ (>=0.13.0,<0.14.0)"
 ]
 
 [build-system]
