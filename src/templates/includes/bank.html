@@ -11,12 +11,13 @@
     </table>
 
     <div style="display: flex; justify-content: space-between; align-items: center; width: 90%;">
-        <button class="btn" style="background: #fbcfe8; border-radius: 15px; padding: 10px 15px; text-align: center; line-height: 1.2;">Провести<br>бухгалтерский аудит</button>
+        <button id="audit-btn" onclick="startAudit()" class="btn" style="background: #fbcfe8; border-radius: 15px; padding: 10px 15px; text-align: center; line-height: 1.2; border: 1px solid #000; cursor: pointer;">
+            Провести<br>бухгалтерский аудит
+        </button>
         <div style="width: 150px; text-align: center;">
-            <span style="font-size: 12px;">75%</span>
+            <span id="audit-progress-text" style="font-size: 12px;">0%</span>
             <div style="position: relative; height: 6px; border: 1px solid #000; border-radius: 5px; background: #fff; margin-top: 5px;">
-                <div style="position: absolute; top: 0; left: 0; height: 100%; width: 75%; background: #fbcfe8; border-radius: 5px;"></div>
-                <div style="position: absolute; top: -5px; left: 75%; width: 14px; height: 14px; background: #fff; border: 1px solid #000; border-radius: 50%; transform: translateX(-50%);"></div>
+                <div id="audit-progress-bar" style="position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: #fbcfe8; border-radius: 5px; transition: width 0.3s ease-in-out;"></div>
             </div>
         </div>
     </div>

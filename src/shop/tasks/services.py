@@ -44,6 +44,8 @@ def execute_trade(action: str, product_name: str, quantity: int) -> None:
         except Product.DoesNotExist:
             return
 
+        current_time = timezone.localtime().strftime("%d.%m.%Y %H:%M")
+
         if action == "buy":
             cost = product.buy_price * quantity
             if account.balance >= cost:
@@ -55,20 +57,26 @@ def execute_trade(action: str, product_name: str, quantity: int) -> None:
                 operation_msg = (
                     f"куплено {quantity} {product_name.lower()} за {cost} usd"
                 )
-                product.last_operation_info = f"Сегодня - {operation_msg}"
+                product.last_operation_info = f"{current_time} - {operation_msg}"
                 product.save()
 
                 log_msg = (
                     f"Поставщик привёз {quantity} {product_name.lower()}."
                     f" Со счёта списано {cost} USD, покупка завершена."  # noqa: RUF001
                 )
-                TradeLog.objects.create(status=TradeLog.Status.SUCCESS, message=log_msg)
+                log_entry = TradeLog.objects.create(
+                    status=TradeLog.Status.SUCCESS, message=log_msg
+                )
+                broadcast_update(log_entry, account, product)
             else:
                 log_msg = (
                     f"Поставщик привёз {quantity} {product_name.lower()}."
                     f" Недостаточно средств на счету, закупка отменена."
                 )
-                TradeLog.objects.create(status=TradeLog.Status.ERROR, message=log_msg)
+                log_entry = TradeLog.objects.create(
+                    status=TradeLog.Status.ERROR, message=log_msg
+                )
+                broadcast_update(log_entry, account, product)
 
         elif action == "sell":
             revenue = product.sell_price * quantity
@@ -81,17 +89,23 @@ def execute_trade(action: str, product_name: str, quantity: int) -> None:
                 operation_msg = (
                     f"продано {quantity} {product_name.lower()} за {revenue} usd"
                 )
-                product.last_operation_info = f"Сегодня - {operation_msg}"
+                product.last_operation_info = f"{current_time} - {operation_msg}"
                 product.save()
 
                 log_msg = (
                     f"Покупатель купил {quantity} {product_name.lower()}."
                     f" На счёт зачислено {revenue} USD, продажа завершена."  # noqa: RUF001
                 )
-                TradeLog.objects.create(status=TradeLog.Status.SUCCESS, message=log_msg)
+                log_entry = TradeLog.objects.create(
+                    status=TradeLog.Status.SUCCESS, message=log_msg
+                )
+                broadcast_update(log_entry, account, product)
             else:
                 log_msg = (
                     f"Покупатель запросил {quantity} {product_name.lower()}."
                     f" Недостаточно товара на складе, продажа отменена."
                 )
-                TradeLog.objects.create(status=TradeLog.Status.ERROR, message=log_msg)
+                log_entry = TradeLog.objects.create(
+                    status=TradeLog.Status.ERROR, message=log_msg
+                )
+                broadcast_update(log_entry, account, product)

@@ -15,6 +15,7 @@ from .peaches import trade_buy_peaches
 from .peaches import trade_sell_peaches
 from .pineapples import trade_buy_pineapples
 from .pineapples import trade_sell_pineapples
+from .warehouse import warehouse_audit_task
 
 __all__ = (
     "trade_buy_apples",
@@ -32,4 +33,5 @@ __all__ = (
     "trade_sell_oranges",
     "trade_sell_peaches",
     "trade_sell_pineapples",
+    "warehouse_audit_task",
 )

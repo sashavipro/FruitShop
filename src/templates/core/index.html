@@ -1,18 +1,25 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="layout-left">
-    <div class="panel">
-        {% include 'includes/products.html' %}
-    </div>
+    {% if user.is_authenticated %}
+        <div class="layout-left">
+            <div class="panel">
+                {% include 'includes/products.html' %}
+            </div>
 
-    <div class="layout-bottom">
-        {% include 'includes/chat.html' %}
-        {% include 'includes/bank.html' %}
-    </div>
-</div>
+            <div class="layout-bottom">
+                {% include 'includes/chat.html' %}
+                {% include 'includes/bank.html' %}
+            </div>
+        </div>
 
-<div class="layout-right">
-    {% include 'includes/logs.html' %}
-</div>
+        <div class="layout-right">
+            {% include 'includes/logs.html' %}
+        </div>
+    {% else %}
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center; background: #fff; border: 1px solid #000; flex-direction: column; gap: 15px;">
+            <h2 style="color: #d97706;">Доступ закрыт</h2>
+            <p>Пожалуйста, войдите в систему или зарегистрируйтесь в шапке сайта, чтобы получить доступ к торговому терминалу.</p>
+        </div>
+    {% endif %}
 {% endblock %}

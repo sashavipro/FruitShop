@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>MyFruitShop</title>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
     <style>
         * { box-sizing: border-box; }
         body {
@@ -69,6 +74,15 @@
         /* Логи */
         .log-error { color: red; margin-bottom: 5px; font-size: 13px; }
         .log-success { color: green; margin-bottom: 5px; font-size: 13px; }
+
+        /* Анимация обновления строки */
+        .highlight-update {
+            animation: flash 1.5s ease-out;
+        }
+        @keyframes flash {
+            0% { background-color: #ffeb3b; }
+            100% { background-color: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -78,7 +92,9 @@
     </div>
 
     <script>
-        // Определяем протокол
+        // =====================================
+        // 1. Логика WebSockets (Торговля)
+        // =====================================
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
         const tradeSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/trades/');
 
@@ -86,31 +102,168 @@
             const data = JSON.parse(e.data);
 
             if (data.type === 'trade_update') {
-                // 1. Обновляем баланс
+                // Обновляем баланс
                 const balanceEl = document.getElementById('bank-balance');
                 if (balanceEl) {
                     balanceEl.innerText = parseFloat(data.balance).toFixed(2) + ' USD';
                 }
 
-                // 2. Добавляем новый лог наверх списка
+                // Добавляем лог
                 const logsContainer = document.getElementById('trade-logs');
                 if (logsContainer) {
                     const logDiv = document.createElement('div');
-                    // Назначаем класс для цвета
                     logDiv.className = data.log.status === 'SUCCESS' ? 'log-success' : 'log-error';
                     logDiv.innerText = `${data.log.created_at} - ${data.log.status}: ${data.log.message}`;
-
-                    // Вставляем лог в начало блока
                     logsContainer.insertBefore(logDiv, logsContainer.firstChild);
                 }
 
-                // Бонус: можно также обновлять строку товара в таблице (если добавить ID к строкам таблицы)
+                // Обновляем строку товара
+                if (data.log.status === 'SUCCESS' && data.product) {
+                    const qtyEl = document.getElementById('qty-' + data.product.name);
+                    const opEl = document.getElementById('op-' + data.product.name);
+                    const rowEl = document.getElementById('row-' + data.product.name);
+
+                    if (qtyEl && opEl && rowEl) {
+                        qtyEl.innerText = data.product.quantity;
+                        opEl.innerText = data.product.last_operation;
+
+                        rowEl.classList.remove('highlight-update');
+                        void rowEl.offsetWidth;
+                        rowEl.classList.add('highlight-update');
+                    }
+                }
             }
         };
 
         tradeSocket.onclose = function(e) {
             console.error('Trade socket closed unexpectedly');
         };
+
+        // =====================================
+        // 2. Логика Бухгалтерского аудита (Toastr)
+        // =====================================
+        toastr.options = {
+            "closeButton": true,
+            "positionClass": "toast-bottom-right",
+            "timeOut": "3000",
+        };
+
+        function startAudit() {
+            // Ищем CSRF-токен на странице
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfInput) {
+                toastr.error("Пожалуйста, войдите в систему.", "Ошибка");
+                return;
+            }
+            const csrfToken = csrfInput.value;
+
+            fetch('/api/audit/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    toastr.error(data.message, "Отклонено");
+                } else {
+                    toastr.info(data.message, "Запуск");
+                    startPolling();
+                }
+            })
+            .catch(err => toastr.error("Ошибка соединения с сервером"));
+        }
+
+        function startPolling() {
+            const btn = document.getElementById('audit-btn');
+            const bar = document.getElementById('audit-progress-bar');
+            const txt = document.getElementById('audit-progress-text');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+
+            let progress = 0;
+
+            const animInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 10;
+                    if (bar) bar.style.width = progress + '%';
+                    if (txt) txt.innerText = progress + '%';
+                }
+            }, 500);
+
+            const pollInterval = setInterval(() => {
+                fetch('/api/audit/status/')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        clearInterval(animInterval);
+
+                        if (bar) bar.style.width = '100%';
+                        if (txt) txt.innerText = '100%';
+                        toastr.success("Бухгалтерский аудит успешно завершен!", "Готово");
+
+                        setTimeout(() => {
+                            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+                            if (bar) bar.style.width = '0%';
+                            if (txt) txt.innerText = '0%';
+                        }, 2000);
+
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollInterval);
+                        clearInterval(animInterval);
+                        toastr.error("Сбой при выполнении задачи.", "Ошибка");
+                        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+                    }
+                });
+            }, 1500);
+        }
+
+        // =====================================
+        // 3. Поллинг статуса задач (каждые 10 сек)
+        // =====================================
+        function updateTasksStatus() {
+            fetch('/api/tasks/')
+                .then(res => {
+                    if (!res.ok) throw new Error("Ошибка авторизации или сервера");
+                    return res.json();
+                })
+                .then(data => {
+                    const container = document.getElementById('tasks-status-list');
+                    if (!container) return;
+
+                    if (data.tasks && data.tasks.length > 0) {
+                        let html = '<table style="width:100%; text-align:left; font-size: 12px; border:none;">';
+                        data.tasks.forEach(t => {
+                            // Выбираем цвет в зависимости от статуса
+                            let color = '#666';
+                            if (t.status === 'running') color = '#d97706'; // Оранжевый
+                            if (t.status === 'completed') color = '#16a34a'; // Зеленый
+                            if (t.status === 'failed') color = '#dc2626'; // Красный
+
+                            html += `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 4px 0;">${t.task_name}</td>
+                                    <td style="padding: 4px 0; font-weight: bold; color: ${color};">${t.status}</td>
+                                    <td style="padding: 4px 0; text-align: right;">${t.last_run_at}</td>
+                                </tr>`;
+                        });
+                        html += '</table>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = "Нет зарегистрированных задач.";
+                    }
+                })
+                .catch(err => console.error("Ошибка обновления задач:", err));
+        }
+
+        // Запускаем поллинг, только если пользователь авторизован (видит панель)
+        if (document.getElementById('tasks-status-list')) {
+            updateTasksStatus(); // Делаем первый запрос сразу
+            setInterval(updateTasksStatus, 10000); // Повторяем каждые 10 секунд
+        }
     </script>
 </body>
 </html>

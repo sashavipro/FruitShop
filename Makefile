@@ -20,6 +20,7 @@ help:
 	@echo "  make down           - Остановка контейнеров"
 	@echo "  make test           - Запуск тестов"
 	@echo "  make celery-trade   - Запуск Celery воркера для торговых операций (Очередь 1)"
+	@echo "  make celery-warehouse - Запуск Celery воркера для складских операций (Очередь 2)"
 	@echo "  make celery-beat    - Запуск планировщика периодических задач Celery Beat"
 
 # ==========================================
@@ -84,12 +85,16 @@ test:
 	poetry run pytest
 
 # ==========================================
-# Celery Workers
+# Celery Workers & Beat
 # ==========================================
 
-# Воркер для торговых операций (Очередь 1) - строго 1 задача за раз
+# Воркер для быстрых торговых операций (Очередь 1)
 celery-trade:
 	poetry run celery -A config worker -Q trading_queue --concurrency=1 --loglevel=info
+
+# Воркер для тяжелых складских операций (Очередь 2) - тоже 1 задача за раз
+celery-warehouse:
+	poetry run celery -A config worker -Q warehouse_queue --concurrency=1 --loglevel=info
 
 # Планировщик периодических задач (Celery Beat)
 celery-beat:

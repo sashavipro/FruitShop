@@ -20,11 +20,20 @@ class IndexView(TemplateView):
     template_name = "core/index.html"
 
     def get_context_data(self, **kwargs):
-        """Add products, account, and logs to the context."""
+        """Add products, account, and logs to the context if user is authenticated."""
         context = super().get_context_data(**kwargs)
-        context["products"] = Product.objects.all().order_by("id")
-        context["account"] = BankAccount.objects.first()
-        context["logs"] = TradeLog.objects.all()[:50]
+
+        # Отдаем данные из БД только авторизованным пользователям
+        if self.request.user.is_authenticated:
+            context["products"] = Product.objects.all().order_by("id")
+            context["account"] = BankAccount.objects.first()
+            context["logs"] = TradeLog.objects.all()[:50]
+        else:
+            # Для гостей возвращаем пустые данные
+            context["products"] = []
+            context["account"] = None
+            context["logs"] = []
+
         return context
 
 

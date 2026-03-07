@@ -1,3 +1,11 @@
+<div style="margin-bottom: 20px; border-bottom: 2px dashed #ccc; padding-bottom: 15px;">
+    <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #333;">Состояние фоновых задач</h3>
+    <div id="tasks-status-list" style="font-size: 13px; color: #666;">
+        Загрузка данных...
+    </div>
+</div>
+
+<h3 style="margin: 0 0 10px 0; font-size: 16px; color: #333;">Логи операций</h3>
 <div id="trade-logs">
     {% for log in logs %}
         {% if log.status == 'SUCCESS' %}
