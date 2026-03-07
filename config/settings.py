@@ -36,6 +36,8 @@ environ.Env.read_env(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 
+GEMINI_API_KEY = env('GEMINI_API_KEY', default=None)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
@@ -155,6 +157,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TASK_ROUTES = {
     # Все быстрые задачи покупки/продажи идут в trading_queue
     'shop.tasks.trade_*': {'queue': 'trading_queue'},
+    'chat.tasks.*': {'queue': 'trading_queue'},
 
     # Все тяжелые складские/аудиторские задачи идут в warehouse_queue
     'shop.tasks.warehouse_*': {'queue': 'warehouse_queue'},

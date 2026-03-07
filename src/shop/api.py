@@ -8,11 +8,13 @@ from ninja import Form
 from ninja import NinjaAPI
 from ninja.security import django_auth
 
+from src.chat.api import router as chat_router
 from src.shop.models import TaskRegistry
 from src.shop.tasks.manual import trade_manual
 from src.shop.tasks.warehouse import warehouse_audit_task
 
 api = NinjaAPI(auth=django_auth)
+api.add_router("", chat_router)
 redis_client = redis.from_url(settings.CELERY_BROKER_URL)
 
 

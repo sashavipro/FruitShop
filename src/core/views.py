@@ -9,6 +9,7 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView
 from django.views.generic import View
 
+from src.chat.models import ChatMessage
 from src.shop.models import BankAccount
 from src.shop.models import Product
 from src.shop.models import TradeLog
@@ -20,19 +21,20 @@ class IndexView(TemplateView):
     template_name = "core/index.html"
 
     def get_context_data(self, **kwargs):
-        """Add products, account, and logs to the context if user is authenticated."""
+        """Add products, account, logs, and chat messages to context."""
         context = super().get_context_data(**kwargs)
 
-        # Отдаем данные из БД только авторизованным пользователям
         if self.request.user.is_authenticated:
             context["products"] = Product.objects.all().order_by("id")
             context["account"] = BankAccount.objects.first()
             context["logs"] = TradeLog.objects.all()[:50]
+            messages = ChatMessage.objects.all()[:40]
+            context["chat_messages"] = reversed(messages)
         else:
-            # Для гостей возвращаем пустые данные
             context["products"] = []
             context["account"] = None
             context["logs"] = []
+            context["chat_messages"] = []
 
         return context
 

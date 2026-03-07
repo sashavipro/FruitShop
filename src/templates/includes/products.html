@@ -1,33 +1,45 @@
-<table>
-    <thead>
-        <tr><th colspan="4" style="background: #fff; font-weight: bold; border-bottom: 1px solid #ccc;">Товары на складе</th></tr>
-        <tr>
-            <th>Название</th>
-            <th>Текущее количество</th>
-            <th>Действия</th>
-            <th>Последняя операция</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for product in products %}
-        <tr id="row-{{ product.name }}">
-            <td>{{ product.name }}</td>
-            <td id="qty-{{ product.name }}">{{ product.stock_quantity }}</td>
-            <td style="width: 250px;">
-                <form hx-post="/api/trade/" hx-swap="none" style="display: flex; align-items: center; justify-content: center; margin: 0;">
-                    {% csrf_token %}
-                    <input type="hidden" name="product_name" value="{{ product.name }}">
+<div style="text-align: center; padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; position: sticky; top: 0; background: #fff; z-index: 20;">
+    Товары на складе
+</div>
 
-                    <input type="number" name="quantity" placeholder="К-ВО" class="action-input" min="1" required style="width: 70px;">
+<div style="width: 100%; flex: 1; overflow-x: auto; display: flex; flex-direction: column;">
 
-                    <button type="submit" name="action" value="buy" class="btn btn-buy">Купить</button>
-                    <button type="submit" name="action" value="sell" class="btn btn-sell">Продать</button>
-                </form>
-            </td>
-            <td id="op-{{ product.name }}" style="font-size: 13px; font-weight: bold;">{{ product.last_operation_info|default:"-" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4">Склад пуст. Выполните make init-data</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <table style="min-width: 600px; height: 100%; margin: 0; border-bottom: none; table-layout: fixed;">
+
+        <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 15%;">
+            <col style="width: 260px;">
+            <col style="width: auto;">
+        </colgroup>
+
+        <thead>
+            <tr style="height: 40px;">
+                <th style="position: sticky; top: 0; background: #f9f9f9; z-index: 10; border-top: none;">Название</th>
+                <th style="position: sticky; top: 0; background: #f9f9f9; z-index: 10; border-top: none;">Текущее количество</th>
+                <th style="position: sticky; top: 0; background: #f9f9f9; z-index: 10; border-top: none;">Действия</th>
+                <th style="position: sticky; top: 0; background: #f9f9f9; z-index: 10; border-top: none;">Последняя операция</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr id="row-{{ product.name }}" style="height: 1px;">
+                <td>{{ product.name }}</td>
+                <td id="qty-{{ product.name }}">{{ product.stock_quantity }}</td>
+                <td>
+                    <form hx-post="/api/trade/" hx-swap="none" style="display: flex; align-items: center; justify-content: center; margin: 0; gap: 5px; flex-wrap: nowrap;">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_name" value="{{ product.name }}">
+                        <input type="number" name="quantity" placeholder="К-ВО" class="action-input" min="1" required style="width: 60px;">
+                        <button type="submit" name="action" value="buy" class="btn btn-buy">Купить</button>
+                        <button type="submit" name="action" value="sell" class="btn btn-sell">Продать</button>
+                    </form>
+                </td>
+                <td id="op-{{ product.name }}" style="font-size: 13px; font-weight: bold;">{{ product.last_operation_info|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr style="height: 1px;"><td colspan="4">Склад пуст. Выполните make init-data</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

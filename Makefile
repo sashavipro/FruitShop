@@ -22,6 +22,8 @@ help:
 	@echo "  make celery-trade   - Запуск Celery воркера для торговых операций (Очередь 1)"
 	@echo "  make celery-warehouse - Запуск Celery воркера для складских операций (Очередь 2)"
 	@echo "  make celery-beat    - Запуск планировщика периодических задач Celery Beat"
+	@echo "  make wake-joker     - Разбудить бота-Шутника"
+	@echo "  make sleep-joker    - Усыпить бота-Шутника"
 
 # ==========================================
 # Django Commands
@@ -99,3 +101,11 @@ celery-warehouse:
 # Планировщик периодических задач (Celery Beat)
 celery-beat:
 	poetry run celery -A config beat --loglevel=info
+
+# Разбудить бота-Шутника (включаем рубильник в Redis и запускаем задачу)
+wake-joker:
+	python manage.py shell -c "import redis; from django.conf import settings; r = redis.from_url(settings.CELERY_BROKER_URL); r.set('joker_active', '1'); from src.chat.tasks import joker_bot_task; joker_bot_task.delay()"
+
+# Усыпить бота-Шутника (выключаем рубильник в Redis)
+sleep-joker:
+	python manage.py shell -c "import redis; from django.conf import settings; r = redis.from_url(settings.CELERY_BROKER_URL); r.set('joker_active', '0')"

@@ -16,13 +16,13 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 django_asgi_app = get_asgi_application()
 
-import src.shop.routing  # noqa: E402
+import src.core.routing  # noqa: E402
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            src.shop.routing.websocket_urlpatterns
+            src.core.routing.websocket_urlpatterns
         )
     ),
 })
