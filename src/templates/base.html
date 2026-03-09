@@ -105,7 +105,7 @@
 
     <script>
         // =====================================
-        // 1. Логика WebSockets (Торговля)
+        // 1. Логика WebSockets (Торговля и Склад)
         // =====================================
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
         const tradeSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/trades/');
@@ -115,7 +115,7 @@
 
             if (data.type === 'trade_update') {
 
-                // --- НОВАЯ ЛОГИКА АУДИТА ИЗ WS ---
+                // --- ЛОГИКА АУДИТА (Общая рассылка) ---
                 if (data.event_type === 'audit_progress') {
                     const bar = document.getElementById('audit-progress-bar');
                     const txt = document.getElementById('audit-progress-text');
@@ -131,7 +131,6 @@
                     if (txt) txt.innerText = '100%';
                     toastr.success("Бухгалтерский аудит успешно завершен!", "Готово");
 
-                    // Сбрасываем бар через 2 секунды
                     setTimeout(() => {
                         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
                         if (bar) bar.style.width = '0%';
@@ -143,7 +142,23 @@
                     toastr.error("Сбой при выполнении аудита.", "Ошибка");
                     if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
                 }
-                // --- СТАРАЯ ЛОГИКА ТОРГОВЛИ (если event_type не указан) ---
+
+                // --- НОВАЯ ЛОГИКА: МАТЕМАТИЧЕСКАЯ ПРОВЕРКА СКЛАДА (Персональная рассылка) ---
+                else if (data.event_type === 'check_start') {
+                    toastr.info("Математическая проверка склада начата (5 сек без sleep)...", "Процесс");
+                }
+                else if (data.event_type === 'check_complete') {
+                    toastr.success(`Проверка завершена! Выполнено ${data.result} итераций.`, "Успех");
+                    const btn = document.getElementById('check-btn');
+                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+                }
+                else if (data.event_type === 'check_failed') {
+                    toastr.error("Сбой при проверке склада.", "Ошибка");
+                    const btn = document.getElementById('check-btn');
+                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+                }
+
+                // --- ЛОГИКА ТОРГОВЛИ (Покупка/Продажа) ---
                 else if (data.log) {
                     // Обновляем баланс
                     const balanceEl = document.getElementById('bank-balance');
@@ -184,7 +199,7 @@
         };
 
         // =====================================
-        // 2. Логика Бухгалтерского аудита (Toastr)
+        // 2. Настройка уведомлений (Toastr)
         // =====================================
         toastr.options = {
             "closeButton": true,
@@ -192,18 +207,21 @@
             "timeOut": "3000",
         };
 
+        // =====================================
+        // 3. Функции запуска тасок
+        // =====================================
+
+        // Запуск старого Аудита (с прогресс-баром)
         function startAudit() {
-            // Ищем CSRF-токен на странице
             const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
             if (!csrfInput) {
                 toastr.error("Пожалуйста, войдите в систему.", "Ошибка");
                 return;
             }
-            const csrfToken = csrfInput.value;
 
             fetch('/api/audit/', {
                 method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken }
+                headers: { 'X-CSRFToken': csrfInput.value }
             })
             .then(res => res.json())
             .then(data => {
@@ -211,7 +229,6 @@
                     toastr.error(data.message, "Отклонено");
                 } else {
                     toastr.info(data.message, "Запуск");
-                    // Просто блокируем кнопку, остальное сделает WebSocket
                     const btn = document.getElementById('audit-btn');
                     if (btn) {
                         btn.disabled = true;
@@ -223,8 +240,37 @@
             .catch(err => toastr.error("Ошибка соединения с сервером"));
         }
 
+        // Запуск новой математической Проверки склада (без sleep)
+        function startWarehouseCheck() {
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfInput) {
+                toastr.error("Пожалуйста, войдите в систему.", "Ошибка");
+                return;
+            }
+
+            fetch('/api/check-warehouse/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfInput.value }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    toastr.error(data.message, "Отклонено");
+                } else {
+                    toastr.info(data.message, "Запуск");
+                    const btn = document.getElementById('check-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                }
+            })
+            .catch(err => toastr.error("Ошибка соединения с сервером"));
+        }
+
         // =====================================
-        // 3. Поллинг статуса задач (каждые 10 сек)
+        // 4. Поллинг статуса задач (каждые 10 сек)
         // =====================================
         function updateTasksStatus() {
             fetch('/api/tasks/')
@@ -239,11 +285,10 @@
                     if (data.tasks && data.tasks.length > 0) {
                         let html = '<table style="width:100%; text-align:left; font-size: 12px; border:none;">';
                         data.tasks.forEach(t => {
-                            // Выбираем цвет в зависимости от статуса
                             let color = '#666';
-                            if (t.status === 'running') color = '#d97706'; // Оранжевый
-                            if (t.status === 'completed') color = '#16a34a'; // Зеленый
-                            if (t.status === 'failed') color = '#dc2626'; // Красный
+                            if (t.status === 'running') color = '#d97706';
+                            if (t.status === 'completed') color = '#16a34a';
+                            if (t.status === 'failed') color = '#dc2626';
 
                             html += `
                                 <tr style="border-bottom: 1px solid #eee;">
@@ -261,14 +306,13 @@
                 .catch(err => console.error("Ошибка обновления задач:", err));
         }
 
-        // Запускаем поллинг, только если пользователь авторизован (видит панель)
         if (document.getElementById('tasks-status-list')) {
-            updateTasksStatus(); // Делаем первый запрос сразу
-            setInterval(updateTasksStatus, 10000); // Повторяем каждые 10 секунд
+            updateTasksStatus();
+            setInterval(updateTasksStatus, 10000);
         }
 
         // =====================================
-        // 4. Логика WebSockets (Чат)
+        // 5. Логика WebSockets (Чат)
         // =====================================
         const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/chat/');
 
@@ -276,28 +320,24 @@
         const chatInput = document.getElementById('chat-input');
         const chatSendBtn = document.getElementById('chat-send-btn');
 
-        // Функция автоскролла вниз
         function scrollToBottom() {
             if (chatMessages) {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
 
-        // Прием сообщений от сервера
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'chat_message') {
-                // Убираем заглушку "Сообщений пока нет", если она есть
                 const emptyMsg = chatMessages.querySelector('p[style*="text-align: center"]');
                 if (emptyMsg) emptyMsg.remove();
 
-                // Создаем новый параграф с сообщением
                 const p = document.createElement('p');
                 p.style.margin = "2px 0";
                 p.innerHTML = `<span style="color: #666;">${data.created_at}</span> <strong>${data.author_name}:</strong> ${data.message}`;
 
                 chatMessages.appendChild(p);
-                scrollToBottom(); // Скроллим к новому сообщению
+                scrollToBottom();
             }
         };
 
@@ -305,32 +345,28 @@
             console.error('Chat socket closed unexpectedly');
         };
 
-        // Функция отправки сообщения
         function sendMessage() {
             if (!chatInput) return;
             const message = chatInput.value.trim();
             if (message) {
                 chatSocket.send(JSON.stringify({ 'message': message }));
-                chatInput.value = ''; // Очищаем поле ввода
+                chatInput.value = '';
             }
         }
 
-        // Слушатель клика по кнопке "Отправить"
         if (chatSendBtn) {
             chatSendBtn.onclick = sendMessage;
         }
 
-        // Слушатель нажатия Enter в поле ввода
         if (chatInput) {
             chatInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    e.preventDefault(); // Предотвращаем перезагрузку формы (если бы она была)
+                    e.preventDefault();
                     sendMessage();
                 }
             });
         }
 
-        // При первой загрузке страницы сразу скроллим чат вниз
         scrollToBottom();
     </script>
 </body>

@@ -24,6 +24,7 @@ from .models import TaskRegistry
 from .models import TradeLog
 from .tasks.manual import trade_manual
 from .tasks.warehouse import warehouse_audit_task
+from .tasks.warehouse import warehouse_check_task
 
 api = NinjaAPI(auth=django_auth)
 api.add_router("", chat_router)
@@ -64,6 +65,30 @@ def start_audit(request: HttpRequest):
     warehouse_audit_task.delay()
 
     return {"status": "ok", "message": "Аудит успешно запущен"}
+
+
+@api.post("/check-warehouse/")
+def start_warehouse_check(request: HttpRequest):
+    """Start warehouse check with material cycle (Redis Lock protection)."""
+    user = request.user
+    if not user.is_authenticated:
+        return {"status": "error", "message": "Необходима авторизация"}
+
+    if redis_client.get("warehouse_check_lock"):
+        return {
+            "status": "error",
+            "message": "Проверка склада уже выполняется! Дождитесь завершения.",
+        }
+
+    redis_client.set("warehouse_check_lock", "locked", ex=10)
+
+    registry, _ = TaskRegistry.objects.get_or_create(task_name="warehouse_check")
+    registry.status = TaskRegistry.Status.RUNNING
+    registry.save()
+
+    warehouse_check_task.delay(user.id)
+
+    return {"status": "ok", "message": "Математическая проверка склада запущена!"}
 
 
 @api.get("/audit/status/")
