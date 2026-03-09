@@ -170,11 +170,14 @@ CELERY_TASK_ROUTES = {
 # Настройки Django Channels (WebSockets)
 # ==========================================
 
+REDIS_PASSWORD = env('REDIS_PASSWORD', default='')
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(env('REDIS_HOST'), env.int('REDIS_PORT'))],
+            # Формат с паролем: redis://:password@host:port/db
+            "hosts": [f"redis://:{REDIS_PASSWORD}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"],
         },
     },
 }
