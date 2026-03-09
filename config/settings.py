@@ -41,7 +41,7 @@ GEMINI_API_KEY = env('GEMINI_API_KEY', default=None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])  # noqa: F405
 
 
 # Application definition
