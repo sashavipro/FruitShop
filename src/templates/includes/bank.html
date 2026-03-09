@@ -14,19 +14,36 @@
         <button id="audit-btn" onclick="startAudit()" class="btn" style="background: #fbcfe8; border-radius: 15px; padding: 10px 15px; text-align: center; line-height: 1.2; border: 1px solid #000; cursor: pointer;">
             Провести<br>бухгалтерский аудит
         </button>
-        <div style="flex: 1; min-width: 120px; text-align: center;">
-            <span id="audit-progress-text" style="font-size: 12px;">0%</span>
-            <div style="position: relative; height: 6px; border: 1px solid #000; border-radius: 5px; background: #fff; margin-top: 5px;">
-                <div id="audit-progress-bar" style="position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: #fbcfe8; border-radius: 5px; transition: width 0.3s ease-in-out;"></div>
+        <div style="flex: 1; min-width: 120px; position: relative;">
+            <div style="height: 20px; border: 1px solid #ccc; border-radius: 5px; background: #e9ecef; overflow: hidden; position: relative;">
+                <div id="audit-progress-bar" style="height: 100%; width: 0%; background-color: #fbcfe8; transition: width 0.5s ease-in-out;"></div>
+                <span id="audit-progress-text" style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 12px; font-weight: bold; line-height: 20px; color: #000;">0%</span>
             </div>
         </div>
     </div>
 
-    <div style="display: flex; gap: 10px; width: 100%; align-items: center; flex-shrink: 0; flex-wrap: wrap;">
-        <input type="text" placeholder="сумма" style="flex: 1; min-width: 80px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
-        <button class="btn btn-buy">Пополнить</button>
-        <button class="btn btn-sell">Вывести</button>
-    </div>
+    <form hx-post="/api/balance/"
+          hx-swap="none"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-on::after-request="
+              if(event.detail.successful) {
+                  let resp = JSON.parse(event.detail.xhr.response);
+                  if(resp.status === 'ok') {
+                      toastr.success(resp.message);
+                      this.reset(); // Очищаем поле ввода
+                  } else {
+                      toastr.error(resp.message);
+                  }
+              } else {
+                  toastr.error('Ошибка сети или сервера');
+              }
+          "
+          style="display: flex; gap: 10px; width: 100%; align-items: center; flex-shrink: 0; flex-wrap: wrap; margin: 0;">
+
+        <input type="number" name="amount" placeholder="сумма" step="0.01" min="0.01" required style="flex: 1; min-width: 80px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+        <button type="submit" name="action" value="deposit" class="btn btn-buy">Пополнить</button>
+        <button type="submit" name="action" value="withdraw" class="btn btn-sell">Вывести</button>
+    </form>
 
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-shrink: 0; flex-wrap: wrap; gap: 10px;">
 

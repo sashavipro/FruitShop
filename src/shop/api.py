@@ -1,9 +1,13 @@
 """src/shop/api.py."""
 
+from decimal import Decimal
 from pathlib import Path
 
 import redis
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.conf import settings
+from django.db import transaction
 from django.http import HttpRequest
 from django.utils import timezone
 from ninja import File
@@ -14,8 +18,10 @@ from ninja.security import django_auth
 
 from src.chat.api import router as chat_router
 
+from .models import BankAccount
 from .models import Declaration
 from .models import TaskRegistry
+from .models import TradeLog
 from .tasks.manual import trade_manual
 from .tasks.warehouse import warehouse_audit_task
 
@@ -118,3 +124,61 @@ def upload_declaration(request, file: UploadedFile = File(...)):  # noqa: B008
         "message": f"Декларация '{file.name}' успешно загружена!",
         "total_count": total_count,
     }
+
+
+@api.post("/balance/")
+def update_balance(
+    request: HttpRequest,
+    action: str = Form(...),
+    amount: Decimal = Form(...),  # noqa: B008
+):
+    """Deposit or withdraw money from the bank account."""
+    if amount <= 0:
+        return {"status": "error", "message": "Сумма должна быть больше нуля!"}
+
+    with transaction.atomic():
+        account = BankAccount.objects.select_for_update().first()
+        if not account:
+            return {"status": "error", "message": "Счет не найден."}
+
+        if action == "deposit":
+            account.balance += amount
+            msg = f"Счет пополнен на {amount} USD."
+            status = TradeLog.Status.SUCCESS
+
+        elif action == "withdraw":
+            if account.balance >= amount:
+                account.balance -= amount
+                msg = f"Со счета выведено {amount} USD."  # noqa: RUF001
+                status = TradeLog.Status.SUCCESS
+            else:
+                msg = f"Ошибка вывода: недостаточно средств ({amount} USD)."
+                status = TradeLog.Status.ERROR
+        else:
+            return {"status": "error", "message": "Неизвестное действие."}
+
+        if status == TradeLog.Status.SUCCESS:
+            account.save()
+
+        log_entry = TradeLog.objects.create(status=status, message=msg)
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "trade_updates",
+            {
+                "type": "trade_update",
+                "log": {
+                    "status": log_entry.status,
+                    "message": log_entry.message,
+                    "created_at": timezone.localtime(log_entry.created_at).strftime(
+                        "%d.%m.%Y %H:%M"
+                    ),
+                },
+                "balance": str(account.balance),
+            },
+        )
+
+    if status == TradeLog.Status.ERROR:
+        return {"status": "error", "message": msg}
+
+    return {"status": "ok", "message": msg}

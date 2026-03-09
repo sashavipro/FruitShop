@@ -114,34 +114,66 @@
             const data = JSON.parse(e.data);
 
             if (data.type === 'trade_update') {
-                // Обновляем баланс
-                const balanceEl = document.getElementById('bank-balance');
-                if (balanceEl) {
-                    balanceEl.innerText = parseFloat(data.balance).toFixed(2) + ' USD';
+
+                // --- НОВАЯ ЛОГИКА АУДИТА ИЗ WS ---
+                if (data.event_type === 'audit_progress') {
+                    const bar = document.getElementById('audit-progress-bar');
+                    const txt = document.getElementById('audit-progress-text');
+                    if (bar) bar.style.width = data.progress + '%';
+                    if (txt) txt.innerText = data.progress + '%';
                 }
+                else if (data.event_type === 'audit_complete') {
+                    const bar = document.getElementById('audit-progress-bar');
+                    const txt = document.getElementById('audit-progress-text');
+                    const btn = document.getElementById('audit-btn');
 
-                // Добавляем лог
-                const logsContainer = document.getElementById('trade-logs');
-                if (logsContainer) {
-                    const logDiv = document.createElement('div');
-                    logDiv.className = data.log.status === 'SUCCESS' ? 'log-success' : 'log-error';
-                    logDiv.innerText = `${data.log.created_at} - ${data.log.status}: ${data.log.message}`;
-                    logsContainer.insertBefore(logDiv, logsContainer.firstChild);
+                    if (bar) bar.style.width = '100%';
+                    if (txt) txt.innerText = '100%';
+                    toastr.success("Бухгалтерский аудит успешно завершен!", "Готово");
+
+                    // Сбрасываем бар через 2 секунды
+                    setTimeout(() => {
+                        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+                        if (bar) bar.style.width = '0%';
+                        if (txt) txt.innerText = '0%';
+                    }, 2000);
                 }
+                else if (data.event_type === 'audit_failed') {
+                    const btn = document.getElementById('audit-btn');
+                    toastr.error("Сбой при выполнении аудита.", "Ошибка");
+                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+                }
+                // --- СТАРАЯ ЛОГИКА ТОРГОВЛИ (если event_type не указан) ---
+                else if (data.log) {
+                    // Обновляем баланс
+                    const balanceEl = document.getElementById('bank-balance');
+                    if (balanceEl) {
+                        balanceEl.innerText = parseFloat(data.balance).toFixed(2) + ' USD';
+                    }
 
-                // Обновляем строку товара
-                if (data.log.status === 'SUCCESS' && data.product) {
-                    const qtyEl = document.getElementById('qty-' + data.product.name);
-                    const opEl = document.getElementById('op-' + data.product.name);
-                    const rowEl = document.getElementById('row-' + data.product.name);
+                    // Добавляем лог
+                    const logsContainer = document.getElementById('trade-logs');
+                    if (logsContainer) {
+                        const logDiv = document.createElement('div');
+                        logDiv.className = data.log.status === 'SUCCESS' ? 'log-success' : 'log-error';
+                        logDiv.innerText = `${data.log.created_at} - ${data.log.status}: ${data.log.message}`;
+                        logsContainer.insertBefore(logDiv, logsContainer.firstChild);
+                    }
 
-                    if (qtyEl && opEl && rowEl) {
-                        qtyEl.innerText = data.product.quantity;
-                        opEl.innerText = data.product.last_operation;
+                    // Обновляем строку товара
+                    if (data.log.status === 'SUCCESS' && data.product) {
+                        const qtyEl = document.getElementById('qty-' + data.product.name);
+                        const opEl = document.getElementById('op-' + data.product.name);
+                        const rowEl = document.getElementById('row-' + data.product.name);
 
-                        rowEl.classList.remove('highlight-update');
-                        void rowEl.offsetWidth;
-                        rowEl.classList.add('highlight-update');
+                        if (qtyEl && opEl && rowEl) {
+                            qtyEl.innerText = data.product.quantity;
+                            opEl.innerText = data.product.last_operation;
+
+                            rowEl.classList.remove('highlight-update');
+                            void rowEl.offsetWidth;
+                            rowEl.classList.add('highlight-update');
+                        }
                     }
                 }
             }
@@ -179,58 +211,16 @@
                     toastr.error(data.message, "Отклонено");
                 } else {
                     toastr.info(data.message, "Запуск");
-                    startPolling();
+                    // Просто блокируем кнопку, остальное сделает WebSocket
+                    const btn = document.getElementById('audit-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    }
                 }
             })
             .catch(err => toastr.error("Ошибка соединения с сервером"));
-        }
-
-        function startPolling() {
-            const btn = document.getElementById('audit-btn');
-            const bar = document.getElementById('audit-progress-bar');
-            const txt = document.getElementById('audit-progress-text');
-
-            if (btn) {
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-            }
-
-            let progress = 0;
-
-            const animInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 10;
-                    if (bar) bar.style.width = progress + '%';
-                    if (txt) txt.innerText = progress + '%';
-                }
-            }, 500);
-
-            const pollInterval = setInterval(() => {
-                fetch('/api/audit/status/')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'completed') {
-                        clearInterval(pollInterval);
-                        clearInterval(animInterval);
-
-                        if (bar) bar.style.width = '100%';
-                        if (txt) txt.innerText = '100%';
-                        toastr.success("Бухгалтерский аудит успешно завершен!", "Готово");
-
-                        setTimeout(() => {
-                            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-                            if (bar) bar.style.width = '0%';
-                            if (txt) txt.innerText = '0%';
-                        }, 2000);
-
-                    } else if (data.status === 'failed') {
-                        clearInterval(pollInterval);
-                        clearInterval(animInterval);
-                        toastr.error("Сбой при выполнении задачи.", "Ошибка");
-                        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-                    }
-                });
-            }, 1500);
         }
 
         // =====================================
