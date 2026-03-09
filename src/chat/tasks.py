@@ -10,7 +10,6 @@ from django.utils import timezone
 from .bot import get_joker_response
 from .models import ChatMessage
 
-# Подключаемся к Redis для проверки статуса
 redis_client = redis.from_url(settings.CELERY_BROKER_URL)
 
 
@@ -20,7 +19,11 @@ def joker_bot_task():
     if redis_client.get("joker_active") != b"1":
         return "Бот отключен, рекурсия остановлена."
 
-    last_user_msg = ChatMessage.objects.filter(author_user__isnull=False).first()
+    last_user_msg = (
+        ChatMessage.objects.filter(author_user__isnull=False)
+        .order_by("-created_at")
+        .first()
+    )
     prompt = (
         last_user_msg.text
         if last_user_msg

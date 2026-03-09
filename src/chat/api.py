@@ -27,3 +27,10 @@ def sleep_joker(request: HttpRequest):
     """Stop the Joker bot."""
     redis_client.set("joker_active", "0")
     return {"status": "ok", "message": "Бот ушел в спячку 😴"}
+
+
+@router.get("/joker-status/")
+def joker_status(request: HttpRequest):
+    """Check if the Joker bot is currently active."""
+    is_active = redis_client.get("joker_active") == b"1"
+    return {"is_active": is_active}

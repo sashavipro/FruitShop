@@ -29,7 +29,36 @@
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-shrink: 0; flex-wrap: wrap; gap: 10px;">
-        <button class="btn" style="background: #bfdbfe; border-radius: 15px; padding: 6px 15px;">Загрузить декларации</button>
-        <span style="font-size: 13px;">Сегодня загружено: 2 шт.</span>
+
+        <form hx-post="/api/upload-declaration/"
+              hx-encoding="multipart/form-data"
+              hx-trigger="change from:#decl-file"
+              hx-swap="none"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-on::after-request="
+                  if(event.detail.successful) {
+                      let resp = JSON.parse(event.detail.xhr.response);
+                      if(resp.status === 'ok') {
+                          toastr.success(resp.message);
+                          // Обновляем общую цифру в счетчике
+                          document.getElementById('decl-count').innerText = resp.total_count;
+                      } else {
+                          toastr.error(resp.message);
+                      }
+                  } else {
+                      toastr.error('Ошибка сети или сервера при загрузке');
+                  }
+                  document.getElementById('decl-file').value = '';
+              "
+              style="margin: 0;">
+
+            <input type="file" id="decl-file" name="file" style="display: none;" accept=".pdf,.csv,.xlsx,.xls">
+
+            <button type="button" onclick="document.getElementById('decl-file').click();" class="btn" style="background: #bfdbfe; border-radius: 15px; padding: 6px 15px;">
+                Загрузить декларации
+            </button>
+        </form>
+
+        <span style="font-size: 13px;">Всего загружено: <span id="decl-count" style="font-weight: bold;">{{ total_declarations|default:"0" }}</span> шт.</span>
     </div>
 </div>

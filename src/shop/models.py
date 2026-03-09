@@ -97,6 +97,8 @@ class Declaration(models.Model):
     Stores the file path and the exact upload timestamp.
     """
 
+    # user = models.ForeignKey(User, on_delete=models.CASCADE,
+    #                          related_name="declarations")
     file = models.FileField(upload_to="declarations/%Y/%m/%d/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

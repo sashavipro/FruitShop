@@ -67,11 +67,23 @@
 </div>
 
 <script>
-    // Оставляем только прокрутку чата вниз
     document.addEventListener("DOMContentLoaded", function() {
+        // 1. Прокрутка чата вниз
         const chatBox = document.getElementById("chat-messages");
         if (chatBox) {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
+        // 2. Проверка статуса Шутника в фоновом режиме
+        fetch('/api/joker-status/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_active) {
+                    // Если бот работает, прячем зеленую кнопку и показываем красную
+                    document.getElementById('btn-wake-joker').style.display = 'none';
+                    document.getElementById('btn-sleep-joker').style.display = 'block';
+                }
+            })
+            .catch(err => console.error("Ошибка проверки статуса Шутника:", err));
     });
 </script>

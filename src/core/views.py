@@ -11,6 +11,7 @@ from django.views.generic import View
 
 from src.chat.models import ChatMessage
 from src.shop.models import BankAccount
+from src.shop.models import Declaration
 from src.shop.models import Product
 from src.shop.models import TradeLog
 
@@ -30,11 +31,13 @@ class IndexView(TemplateView):
             context["logs"] = TradeLog.objects.all()[:50]
             messages = ChatMessage.objects.all()[:40]
             context["chat_messages"] = reversed(messages)
+            context["total_declarations"] = Declaration.objects.count()
         else:
             context["products"] = []
             context["account"] = None
             context["logs"] = []
             context["chat_messages"] = []
+            context["total_declarations"] = 0
 
         return context
 

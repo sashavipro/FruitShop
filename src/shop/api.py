@@ -1,17 +1,23 @@
 """src/shop/api.py."""
 
+from pathlib import Path
+
 import redis
 from django.conf import settings
 from django.http import HttpRequest
 from django.utils import timezone
+from ninja import File
 from ninja import Form
 from ninja import NinjaAPI
+from ninja.files import UploadedFile
 from ninja.security import django_auth
 
 from src.chat.api import router as chat_router
-from src.shop.models import TaskRegistry
-from src.shop.tasks.manual import trade_manual
-from src.shop.tasks.warehouse import warehouse_audit_task
+
+from .models import Declaration
+from .models import TaskRegistry
+from .tasks.manual import trade_manual
+from .tasks.warehouse import warehouse_audit_task
 
 api = NinjaAPI(auth=django_auth)
 api.add_router("", chat_router)
@@ -79,3 +85,36 @@ def get_all_tasks(request: HttpRequest):
     ]
 
     return {"tasks": result}
+
+
+@api.post("/upload-declaration/")
+def upload_declaration(request, file: UploadedFile = File(...)):  # noqa: B008
+    """Upload and validate declaration files (multipart/form-data)."""
+    allowed_extensions = [".pdf", ".csv", ".xlsx", ".xls"]
+    ext = Path(file.name).suffix.lower()
+
+    if ext not in allowed_extensions:
+        allowed = ", ".join(allowed_extensions)
+        return {
+            "status": "error",
+            "message": f"Неверный формат: {ext}. Разрешены: {allowed}",
+        }
+
+    max_size = 5 * 1024 * 1024
+    if file.size > max_size:
+        return {
+            "status": "error",
+            "message": "Файл слишком большой! Максимальный размер: 5 МБ.",
+        }
+
+    declaration = Declaration()
+    declaration.file.save(file.name, file)
+    declaration.save()
+
+    total_count = Declaration.objects.count()
+
+    return {
+        "status": "ok",
+        "message": f"Декларация '{file.name}' успешно загружена!",
+        "total_count": total_count,
+    }
