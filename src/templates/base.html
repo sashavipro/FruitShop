@@ -326,39 +326,63 @@
             }
         }
 
-        // Функция для очистки текста от опасных HTML-тегов (Защита от XSS)
-        function escapeHTML(str) {
-            if (!str) return "";
-            return str.replace(/[&<>'"]/g, function(tag) {
-                const charsToReplace = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                };
-                return charsToReplace[tag] || tag;
-            });
-        }
-
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'chat_message') {
                 const emptyMsg = chatMessages.querySelector('p[style*="text-align: center"]');
                 if (emptyMsg) emptyMsg.remove();
 
-                // Экранируем сообщение и имя автора перед вставкой
-                const safeMessage = escapeHTML(data.message);
-                const safeAuthor = escapeHTML(data.author_name);
-
                 const p = document.createElement('p');
                 p.style.margin = "2px 0";
-                p.innerHTML = `<span style="color: #666;">${data.created_at}</span> <strong>${safeAuthor}:</strong> ${safeMessage}`;
+
+                // ИДЕАЛЬНАЯ ЗАЩИТА ОТ XSS
+                // Создаем элементы и вставляем текст через textContent (браузер не выполнит скрипты)
+                const timeSpan = document.createElement('span');
+                timeSpan.style.color = '#666';
+                timeSpan.textContent = data.created_at + ' ';
+
+                const authorStrong = document.createElement('strong');
+                authorStrong.textContent = data.author_name + ': ';
+
+                const msgNode = document.createTextNode(data.message);
+
+                p.appendChild(timeSpan);
+                p.appendChild(authorStrong);
+                p.appendChild(msgNode);
 
                 chatMessages.appendChild(p);
                 scrollToBottom();
             }
         };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        // ВЕРНУЛИ ЛОГИКУ ОТПРАВКИ СООБЩЕНИЙ!
+        function sendMessage() {
+            if (!chatInput) return;
+            const message = chatInput.value.trim();
+            if (message) {
+                chatSocket.send(JSON.stringify({ 'message': message }));
+                chatInput.value = '';
+            }
+        }
+
+        if (chatSendBtn) {
+            chatSendBtn.onclick = sendMessage;
+        }
+
+        if (chatInput) {
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        scrollToBottom();
     </script>
 </body>
 </html>
