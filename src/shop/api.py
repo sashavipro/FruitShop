@@ -39,6 +39,12 @@ def create_trade_task(
     quantity: int = Form(...),
 ):
     """Put a manual trade task into the Celery queue."""
+    if quantity <= 0:
+        return {
+            "status": "error",
+            "message": "Ошибка: количество товара должно быть больше нуля!",
+        }
+
     trade_manual.delay(action, product_name, quantity)
 
     return {

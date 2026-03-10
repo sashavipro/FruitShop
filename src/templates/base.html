@@ -326,48 +326,39 @@
             }
         }
 
+        // Функция для очистки текста от опасных HTML-тегов (Защита от XSS)
+        function escapeHTML(str) {
+            if (!str) return "";
+            return str.replace(/[&<>'"]/g, function(tag) {
+                const charsToReplace = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                };
+                return charsToReplace[tag] || tag;
+            });
+        }
+
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'chat_message') {
                 const emptyMsg = chatMessages.querySelector('p[style*="text-align: center"]');
                 if (emptyMsg) emptyMsg.remove();
 
+                // Экранируем сообщение и имя автора перед вставкой
+                const safeMessage = escapeHTML(data.message);
+                const safeAuthor = escapeHTML(data.author_name);
+
                 const p = document.createElement('p');
                 p.style.margin = "2px 0";
-                p.innerHTML = `<span style="color: #666;">${data.created_at}</span> <strong>${data.author_name}:</strong> ${data.message}`;
+                p.innerHTML = `<span style="color: #666;">${data.created_at}</span> <strong>${safeAuthor}:</strong> ${safeMessage}`;
 
                 chatMessages.appendChild(p);
                 scrollToBottom();
             }
         };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
-
-        function sendMessage() {
-            if (!chatInput) return;
-            const message = chatInput.value.trim();
-            if (message) {
-                chatSocket.send(JSON.stringify({ 'message': message }));
-                chatInput.value = '';
-            }
-        }
-
-        if (chatSendBtn) {
-            chatSendBtn.onclick = sendMessage;
-        }
-
-        if (chatInput) {
-            chatInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-        }
-
-        scrollToBottom();
     </script>
 </body>
 </html>
