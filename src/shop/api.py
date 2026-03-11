@@ -9,6 +9,7 @@ from channels.layers import get_channel_layer
 from django.conf import settings
 from django.db import transaction
 from django.http import HttpRequest
+from django.template.loader import render_to_string
 from django.utils import timezone
 from ninja import File
 from ninja import Form
@@ -193,19 +194,20 @@ def update_balance(
 
         log_entry = TradeLog.objects.create(status=status, message=msg)
 
+        html = render_to_string(
+            "includes/ws_shop_update.html",
+            {
+                "log": log_entry,
+                "balance": str(account.balance),
+            },
+        )
+
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "trade_updates",
             {
                 "type": "trade_update",
-                "log": {
-                    "status": log_entry.status,
-                    "message": log_entry.message,
-                    "created_at": timezone.localtime(log_entry.created_at).strftime(
-                        "%d.%m.%Y %H:%M"
-                    ),
-                },
-                "balance": str(account.balance),
+                "html": html,
             },
         )
 

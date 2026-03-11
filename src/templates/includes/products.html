@@ -25,7 +25,7 @@
             {% for product in products %}
             <tr id="row-{{ product.name }}" style="height: 1px;">
                 <td>{{ product.name }}</td>
-                <td id="qty-{{ product.name }}">{{ product.stock_quantity }}</td>
+                <td><span id="qty-{{ product.name }}">{{ product.stock_quantity }}</span></td>
                 <td>
                     <form hx-post="/api/trade/" hx-swap="none" style="display: flex; align-items: center; justify-content: center; margin: 0; gap: 5px; flex-wrap: nowrap;">
                         {% csrf_token %}
@@ -35,7 +35,9 @@
                         <button type="submit" name="action" value="sell" class="btn btn-sell">Продать</button>
                     </form>
                 </td>
-                <td id="op-{{ product.name }}" style="font-size: 13px; font-weight: bold;">{{ product.last_operation_info|default:"-" }}</td>
+                <td style="font-size: 13px; font-weight: bold;">
+                    <span id="op-{{ product.name }}">{{ product.last_operation_info|default:"-" }}</span>
+                </td>
             </tr>
             {% empty %}
             <tr style="height: 1px;"><td colspan="4">Склад пуст. Выполните make init-data</td></tr>

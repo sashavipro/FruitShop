@@ -1,0 +1,20 @@
+{% if balance %}
+<span id="bank-balance" hx-swap-oob="true">
+    {{ balance }} USD
+</span>
+{% endif %}
+
+{% if log %}
+<div hx-swap-oob="afterbegin:#trade-logs">
+    <div class="{% if log.status == 'SUCCESS' %}log-success{% else %}log-error{% endif %}">
+        {{ log.created_at|date:"d.m.Y H:i" }} - {{ log.status }}: {{ log.message }}
+    </div>
+</div>
+{% endif %}
+
+{% if product %}
+<span id="qty-{{ product.name }}" hx-swap-oob="true">{{ product.stock_quantity }}</span>
+<span id="op-{{ product.name }}" hx-swap-oob="true">
+    {{ product.last_operation_info }}
+</span>
+{% endif %}

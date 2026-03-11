@@ -5,7 +5,7 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
 from django.conf import settings
-from django.utils import timezone
+from django.template.loader import render_to_string
 
 from .bot import get_joker_response
 from .models import ChatMessage
@@ -36,14 +36,14 @@ def joker_bot_task():
         author_user=None, author_name="Шутник 🤡", text=joke_text
     )
 
+    html = render_to_string("includes/ws_chat_message.html", {"msg": msg})
+
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         "chat_room",
         {
             "type": "chat_message",
-            "message": msg.text,
-            "author_name": msg.author_name,
-            "created_at": timezone.localtime(msg.created_at).strftime("%H:%M"),
+            "html": html,
         },
     )
 

@@ -6,7 +6,9 @@
     <table style="width: 100%; margin: 0; flex-shrink: 0;">
         <tr>
             <td style="text-align: center; border-right: 1px solid #ccc; width: 50%;">Банковский счёт:</td>
-            <td id="bank-balance" style="text-align: center; font-weight: bold; color: #d97706; font-size: 18px;">{{ account.balance|default:"0.00" }} USD</td>
+            <td style="text-align: center; font-weight: bold; color: #d97706; font-size: 18px;">
+                <span id="bank-balance">{{ account.balance|default:"0.00" }} USD</span>
+            </td>
         </tr>
     </table>
 

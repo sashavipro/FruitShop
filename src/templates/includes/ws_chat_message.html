@@ -1,0 +1,7 @@
+<div hx-swap-oob="beforeend:#chat-messages">
+    <p style="margin: 2px 0;">
+        <span style="color: #666;">{{ msg.created_at|date:"H:i" }}</span>
+        <strong>{{ msg.author_name }}:</strong>
+        {{ msg.text }}
+    </p>
+</div>

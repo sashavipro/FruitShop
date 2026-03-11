@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>MyFruitShop</title>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
@@ -99,7 +99,10 @@
 </head>
 <body>
     {% include 'includes/header.html' %}
-    <div class="main-content">
+
+    <div id="trade-trash" style="display: none;"></div>
+
+    <div class="main-content" hx-ext="ws" ws-connect="/ws/trades/" hx-target="#trade-trash">
         {% block content %}{% endblock %}
     </div>
 
@@ -110,92 +113,70 @@
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
         const tradeSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/trades/');
 
-        tradeSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-
-            if (data.type === 'trade_update') {
-
-                // --- ЛОГИКА АУДИТА (Общая рассылка) ---
-                if (data.event_type === 'audit_progress') {
-                    const bar = document.getElementById('audit-progress-bar');
-                    const txt = document.getElementById('audit-progress-text');
-                    if (bar) bar.style.width = data.progress + '%';
-                    if (txt) txt.innerText = data.progress + '%';
-                }
-                else if (data.event_type === 'audit_complete') {
-                    const bar = document.getElementById('audit-progress-bar');
-                    const txt = document.getElementById('audit-progress-text');
-                    const btn = document.getElementById('audit-btn');
-
-                    if (bar) bar.style.width = '100%';
-                    if (txt) txt.innerText = '100%';
-                    toastr.success("Бухгалтерский аудит успешно завершен!", "Готово");
-
-                    setTimeout(() => {
-                        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
-                        if (bar) bar.style.width = '0%';
-                        if (txt) txt.innerText = '0%';
-                    }, 2000);
-                }
-                else if (data.event_type === 'audit_failed') {
-                    const btn = document.getElementById('audit-btn');
-                    toastr.error("Сбой при выполнении аудита.", "Ошибка");
-                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
-                }
-
-                // --- НОВАЯ ЛОГИКА: МАТЕМАТИЧЕСКАЯ ПРОВЕРКА СКЛАДА (Персональная рассылка) ---
-                else if (data.event_type === 'check_start') {
-                    toastr.info("Математическая проверка склада начата (5 сек без sleep)...", "Процесс");
-                }
-                else if (data.event_type === 'check_complete') {
-                    toastr.success(`Проверка завершена! Выполнено ${data.result} итераций.`, "Успех");
-                    const btn = document.getElementById('check-btn');
-                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
-                }
-                else if (data.event_type === 'check_failed') {
-                    toastr.error("Сбой при проверке склада.", "Ошибка");
-                    const btn = document.getElementById('check-btn');
-                    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
-                }
-
-                // --- ЛОГИКА ТОРГОВЛИ (Покупка/Продажа) ---
-                else if (data.log) {
-                    // Обновляем баланс
-                    const balanceEl = document.getElementById('bank-balance');
-                    if (balanceEl) {
-                        balanceEl.innerText = parseFloat(data.balance).toFixed(2) + ' USD';
-                    }
-
-                    // Добавляем лог
-                    const logsContainer = document.getElementById('trade-logs');
-                    if (logsContainer) {
-                        const logDiv = document.createElement('div');
-                        logDiv.className = data.log.status === 'SUCCESS' ? 'log-success' : 'log-error';
-                        logDiv.innerText = `${data.log.created_at} - ${data.log.status}: ${data.log.message}`;
-                        logsContainer.insertBefore(logDiv, logsContainer.firstChild);
-                    }
-
-                    // Обновляем строку товара
-                    if (data.log.status === 'SUCCESS' && data.product) {
-                        const qtyEl = document.getElementById('qty-' + data.product.name);
-                        const opEl = document.getElementById('op-' + data.product.name);
-                        const rowEl = document.getElementById('row-' + data.product.name);
-
-                        if (qtyEl && opEl && rowEl) {
-                            qtyEl.innerText = data.product.quantity;
-                            opEl.innerText = data.product.last_operation;
-
-                            rowEl.classList.remove('highlight-update');
-                            void rowEl.offsetWidth;
-                            rowEl.classList.add('highlight-update');
-                        }
-                    }
-                }
-            }
-        };
-
         tradeSocket.onclose = function(e) {
             console.error('Trade socket closed unexpectedly');
+        };
+
+        // --- ДОБАВИТЬ ЭТОТ БЛОК ---
+        tradeSocket.onmessage = function(e) {
+            try {
+                // Пытаемся прочитать как JSON. Если это HTML от HTMX, выпадет ошибка и мы её проигнорируем.
+                const data = JSON.parse(e.data);
+
+                // --- ЛОГИКА АУДИТА ---
+                if (data.event_type === 'audit_progress') {
+                    const bar = document.getElementById('audit-progress-bar');
+                    const text = document.getElementById('audit-progress-text');
+                    if (bar && text) {
+                        bar.style.width = data.progress + '%';
+                        text.innerText = data.progress + '%';
+                    }
+                } else if (data.event_type === 'audit_complete') {
+                    toastr.success("Аудит успешно завершен!");
+                    const btn = document.getElementById('audit-btn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                    // Сбрасываем бар через 2 секунды
+                    setTimeout(() => {
+                        const bar = document.getElementById('audit-progress-bar');
+                        const text = document.getElementById('audit-progress-text');
+                        if (bar && text) {
+                            bar.style.width = '0%';
+                            text.innerText = '0%';
+                        }
+                    }, 2000);
+                } else if (data.event_type === 'audit_failed') {
+                    toastr.error("Ошибка при выполнении аудита!");
+                    document.getElementById('audit-btn').disabled = false;
+                    document.getElementById('audit-btn').style.opacity = '1';
+
+                // --- ЛОГИКА МАТЕМАТИЧЕСКОЙ ПРОВЕРКИ ---
+                } else if (data.event_type === 'check_start') {
+                    toastr.info("Математическая проверка начата...");
+                } else if (data.event_type === 'check_complete') {
+                    toastr.success("Проверка завершена! Итераций: " + data.result);
+                    const btn = document.getElementById('check-btn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                } else if (data.event_type === 'check_failed') {
+                    toastr.error("Ошибка при проверке склада!");
+                    const btn = document.getElementById('check-btn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                }
+            } catch (err) {
+                // Если парсинг JSON не удался, значит прилетел кусок HTML от HTMX.
+                // Ничего не делаем, HTMX сам вставит его куда нужно.
+            }
         };
 
         // =====================================
@@ -312,77 +293,17 @@
         }
 
         // =====================================
-        // 5. Логика WebSockets (Чат)
+        // 5. Автопрокрутка чата (HTMX)
         // =====================================
-        const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/chat/');
-
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const chatSendBtn = document.getElementById('chat-send-btn');
-
-        function scrollToBottom() {
-            if (chatMessages) {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'chat_message') {
-                const emptyMsg = chatMessages.querySelector('p[style*="text-align: center"]');
-                if (emptyMsg) emptyMsg.remove();
-
-                const p = document.createElement('p');
-                p.style.margin = "2px 0";
-
-                // ИДЕАЛЬНАЯ ЗАЩИТА ОТ XSS
-                // Создаем элементы и вставляем текст через textContent (браузер не выполнит скрипты)
-                const timeSpan = document.createElement('span');
-                timeSpan.style.color = '#666';
-                timeSpan.textContent = data.created_at + ' ';
-
-                const authorStrong = document.createElement('strong');
-                authorStrong.textContent = data.author_name + ': ';
-
-                const msgNode = document.createTextNode(data.message);
-
-                p.appendChild(timeSpan);
-                p.appendChild(authorStrong);
-                p.appendChild(msgNode);
-
-                chatMessages.appendChild(p);
-                scrollToBottom();
-            }
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
-
-        // ВЕРНУЛИ ЛОГИКУ ОТПРАВКИ СООБЩЕНИЙ!
-        function sendMessage() {
-            if (!chatInput) return;
-            const message = chatInput.value.trim();
-            if (message) {
-                chatSocket.send(JSON.stringify({ 'message': message }));
-                chatInput.value = '';
-            }
-        }
-
-        if (chatSendBtn) {
-            chatSendBtn.onclick = sendMessage;
-        }
-
-        if (chatInput) {
-            chatInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendMessage();
+        document.body.addEventListener('htmx:wsAfterMessage', function(e) {
+            // Если в пришедшем сообщении есть упоминание чата
+            if (e.detail.message.includes('chat-messages')) {
+                const chatBox = document.getElementById('chat-messages');
+                if (chatBox) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 }
-            });
-        }
-
-        scrollToBottom();
+            }
+        });
     </script>
 </body>
 </html>

@@ -31,4 +31,7 @@ class TradeConsumer(AsyncWebsocketConsumer):
 
     async def trade_update(self, event):
         """Receive a trade update from the group and send it to the client."""
-        await self.send(text_data=json.dumps(event))
+        if "html" in event:
+            await self.send(text_data=event["html"])
+        else:
+            await self.send(text_data=json.dumps(event))

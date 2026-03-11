@@ -1,4 +1,6 @@
-<div class="panel chat-section" style="flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+<div class="panel chat-section"
+     ws-connect="/ws/chat/"
+     style="flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
 
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 5px; flex-shrink: 0;">
         <span style="font-weight: bold;">Чат сотрудников</span>
@@ -14,7 +16,6 @@
                             if(resp.status === 'info') toastr.info(resp.message);
                             else toastr.success(resp.message);
 
-                            // Скрываем эту кнопку и показываем кнопку ВЫКЛ
                             this.style.display = 'none';
                             document.getElementById('btn-sleep-joker').style.display = 'block';
                         } else toastr.error('Ошибка активации');
@@ -32,7 +33,6 @@
                         if(event.detail.successful) {
                             toastr.warning('Бот ушел в спячку 😴');
 
-                            // Скрываем эту кнопку и возвращаем кнопку ВКЛ
                             this.style.display = 'none';
                             document.getElementById('btn-wake-joker').style.display = 'block';
                         } else toastr.error('Ошибка');
@@ -45,7 +45,6 @@
     </div>
 
     <div id="chat-messages" style="flex: 1; border: 1px solid #000; overflow-y: auto; padding: 5px; font-size: 13px; display: flex; flex-direction: column; min-height: 0;">
-
         {% for msg in chat_messages %}
             <p style="margin: 2px 0;">
                 <span style="color: #666;">{{ msg.created_at|date:"H:i" }}</span>
@@ -57,29 +56,29 @@
                 Сообщений пока нет. Напишите что-нибудь!
             </p>
         {% endfor %}
-
     </div>
 
-    <div style="display: flex; gap: 10px; flex-shrink: 0;">
-        <input type="text" id="chat-input" placeholder="Текст сообщения..." style="flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
-        <button id="chat-send-btn" class="btn btn-login">Отправить</button>
-    </div>
+    <div id="chat-trash" style="display: none;"></div>
+
+    <form ws-send hx-target="#chat-trash"
+          hx-on::ws-after-send="this.reset()"
+          style="display: flex; gap: 10px; flex-shrink: 0; margin: 0;">
+        <input type="text" name="message" placeholder="Текст сообщения..." required style="flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+        <button type="submit" class="btn btn-login">Отправить</button>
+    </form>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Прокрутка чата вниз
         const chatBox = document.getElementById("chat-messages");
         if (chatBox) {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // 2. Проверка статуса Шутника в фоновом режиме
         fetch('/api/joker-status/')
             .then(response => response.json())
             .then(data => {
                 if (data.is_active) {
-                    // Если бот работает, прячем зеленую кнопку и показываем красную
                     document.getElementById('btn-wake-joker').style.display = 'none';
                     document.getElementById('btn-sleep-joker').style.display = 'block';
                 }
