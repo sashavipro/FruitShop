@@ -17,4 +17,18 @@
 <span id="op-{{ product.name }}" hx-swap-oob="true">
     {{ product.last_operation_info }}
 </span>
+
+<script>
+    (function() {
+        const row = document.getElementById('row-{{ product.name }}');
+        if (row) {
+            // Удаляем класс, если он уже есть (если быстро купили 2 раза подряд)
+            row.classList.remove('highlight-update');
+            // Магия браузера: заставляем его перерисовать элемент (Reflow)
+            void row.offsetWidth;
+            // Снова добавляем класс, чтобы анимация запустилась
+            row.classList.add('highlight-update');
+        }
+    })();
+</script>
 {% endif %}

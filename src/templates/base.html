@@ -296,11 +296,25 @@
         // 5. Автопрокрутка чата (HTMX)
         // =====================================
         document.body.addEventListener('htmx:wsAfterMessage', function(e) {
-            // Если в пришедшем сообщении есть упоминание чата
+            // 1. Если пришло сообщение для чата — крутим вниз
             if (e.detail.message.includes('chat-messages')) {
                 const chatBox = document.getElementById('chat-messages');
                 if (chatBox) {
                     chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+
+            // 2. Если пришло обновление магазина — подсвечиваем строку товара
+            // Магия: ищем в присланном HTML кусок текста вида id="qty-Яблоки"
+            const match = e.detail.message.match(/id="qty-([^"]+)"/);
+            if (match && match[1]) {
+                // match[1] — это само название товара (например, "Яблоки")
+                const row = document.getElementById('row-' + match[1]);
+                if (row) {
+                    // Сбрасываем анимацию и запускаем её заново (Reflow)
+                    row.classList.remove('highlight-update');
+                    void row.offsetWidth;
+                    row.classList.add('highlight-update');
                 }
             }
         });
