@@ -13,7 +13,12 @@ from .models import ChatMessage
 redis_client = redis.from_url(settings.CELERY_BROKER_URL)
 
 
-@shared_task(name="chat.tasks.joker_bot")
+@shared_task(
+    name="chat.tasks.joker_bot",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    default_retry_delay=10,
+)
 def joker_bot_task():
     """Recursive task to send a joke, broadcast it, and reschedule itself."""
     if redis_client.get("joker_active") != b"1":

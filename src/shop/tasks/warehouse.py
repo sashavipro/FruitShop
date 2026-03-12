@@ -13,7 +13,12 @@ from src.shop.models import TaskRegistry
 redis_client = redis.from_url(settings.CELERY_BROKER_URL)
 
 
-@shared_task(name="shop.tasks.warehouse_audit")
+@shared_task(
+    name="shop.tasks.warehouse_audit",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    default_retry_delay=5,
+)
 def warehouse_audit_task():
     """Simulate a long audit operation (15 seconds) and send progress to WS."""
     channel_layer = get_channel_layer()
@@ -67,7 +72,12 @@ def warehouse_audit_task():
     return "Аудит завершен на 100%"
 
 
-@shared_task(name="shop.tasks.warehouse_check")
+@shared_task(
+    name="shop.tasks.warehouse_check",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    default_retry_delay=5,
+)
 def warehouse_check_task(user_id):
     """Math loop for 5 seconds without sleep."""
     channel_layer = get_channel_layer()

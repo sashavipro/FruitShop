@@ -98,9 +98,9 @@ celery-trade:
 celery-warehouse:
 	poetry run celery -A config worker -Q warehouse_queue --concurrency=1 --loglevel=info
 
-# Планировщик периодических задач (Celery Beat)
+# Планировщик периодических задач (Celery Beat) с БД
 celery-beat:
-	poetry run celery -A config beat --loglevel=info
+	poetry run celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
 # Разбудить бота-Шутника (включаем рубильник в Redis и запускаем задачу)
 wake-joker:
