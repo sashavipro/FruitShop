@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo "==> Сбор статики..."
+poetry run python manage.py collectstatic --noinput
+
 echo "==> Применение миграций базы данных..."
 poetry run python manage.py migrate
 
